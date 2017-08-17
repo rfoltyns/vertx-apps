@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>Keep it simple stupid</title>
+
+        <script src="//cdn.jsdelivr.net/sockjs/0.3.4/sockjs.min.js"></script>
+        <script src="static/js/vertx-eventbus.js"></script>
+        <script src="static/js/Chart.bundle.js"></script>
+        <script src="static/js/graph.js"></script>
+        <style>
+            canvas{
+                -moz-user-select: none;
+                -webkit-user-select: none;
+                -ms-user-select: none;
+            }
+        </style>
+    </head>
+
+    <body onload="init();">
+        <div style="width:75%;">
+            <canvas id="canvas"></canvas>
+            <input type="button" onclick="adjustScale();" value="Adjust scale">
+            <input type="button" onclick="createSnapshot();" value="Create snapshot">
+        </div>
+    </body>
+
+</html>

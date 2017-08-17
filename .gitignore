@@ -1,6 +1,16 @@
 # Compiled class file
 *.class
 
+# Intellij
+.idea
+*.iml
+
+# Maven
+target
+
+# Vert.x cache file
+.vertx
+
 # Log file
 *.log
 
