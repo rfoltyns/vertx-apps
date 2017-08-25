@@ -24,7 +24,7 @@ public class Application {
 //                        .setEventLoopPoolSize(200)
 //                        .setInternalBlockingPoolSize(200)
         );
-        vertx.deployVerticle(Consumer.class.getName(), new DeploymentOptions().setInstances(20)
+        vertx.deployVerticle(Consumer.class.getName(), new DeploymentOptions().setInstances(200)
                 .setMultiThreaded(true)
                 .setWorker(true)
 //                .setWorkerPoolSize(400)

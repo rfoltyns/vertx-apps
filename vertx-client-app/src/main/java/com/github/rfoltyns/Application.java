@@ -1,9 +1,7 @@
 package com.github.rfoltyns;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.github.rfoltyns.vertx.VertxBulkClient;
-import com.github.rfoltyns.vertx.VertxHttpServer;
-import com.github.rfoltyns.vertx.VertxLoadClient;
+import com.github.rfoltyns.vertx.*;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
@@ -22,12 +20,12 @@ public class Application {
                     .setInternalBlockingPoolSize(100)
     );
 
-    static final AtomicInteger counter = new AtomicInteger();
-
     public static void main(String... args) throws InterruptedException {
         VERTX.deployVerticle(new VertxHttpServer());
         VERTX.deployVerticle(VertxBulkClient.class.getName(), new DeploymentOptions().setInstances(1));
         VERTX.deployVerticle(VertxLoadClient.class.getName(), new DeploymentOptions().setInstances(1));
+        VERTX.deployVerticle(Collector.class.getName());
+
         Json.mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
         System.out.println("Vertx server started");
     }

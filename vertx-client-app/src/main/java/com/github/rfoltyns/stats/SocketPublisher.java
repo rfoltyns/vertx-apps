@@ -15,6 +15,11 @@ public class SocketPublisher implements StatsListener {
         this.vertx = vertx;
     }
 
+    @Override
+    public String getTarget() {
+        return target;
+    }
+
     /**
      * All stats listeners created for the same target are equal
      * @param o

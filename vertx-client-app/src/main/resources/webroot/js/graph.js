@@ -1,9 +1,10 @@
 function init() {
-    this.registerStatsListener();
-    this.initGraph();
+    registerStatsConsumer();
+    registerGraph("graph1", "lifetime", PERCENTILES);
+    initGraph();
 };
 
-function registerStatsListener() {
+function registerStatsConsumer() {
     var eventBus = new EventBus(getUrl() + '/eventbus');
     eventBus.onopen = function() {
         console.log('Connected')
@@ -12,18 +13,6 @@ function registerStatsListener() {
             refreshData(JSON.parse(message.body));
             updateGraph();
         });
-        var xmlhttp = (window.XMLHttpRequest) ? new XMLHttpRequest() : new ActiveXObject("Microsoft.XMLHTTP");
-        xmlhttp.onreadystatechange = function () {
-            if (xmlhttp.readyState == 4) {
-                if (xmlhttp.status != 200) {
-                    console.log('Sorry, something went wrong.');
-                }
-            }
-        };
-
-        xmlhttp.open("POST", getUrl() + '/graph/lifetime');
-        xmlhttp.setRequestHeader("Content-Type", "application/json");
-        xmlhttp.send(JSON.stringify({graphName: "graph1"}));
     };
 };
 
@@ -38,6 +27,45 @@ function refreshData(stats) {
     config.data.datasets[0].data = stats.processedAveragePercentiles;
     config.data.datasets[1].data = stats.receivedAveragePercentiles;
     config.data.datasets[2].data = stats.serviceTimeAveragePercentiles;
+}
+
+function registerGraph(graphName, statsType, percentiles) {
+
+    var request = createRequest();
+    request.open("POST", getUrl() + '/graph/' + statsType);
+    request.setRequestHeader("Content-Type", "application/json");
+    request.send(JSON.stringify({graphName: graphName}));
+
+}
+
+function unregisterGraph(graphName, statsType, percentiles) {
+
+    var request = createRequest();
+    request.open("DELETE", getUrl() + '/graph/' + statsType);
+    request.setRequestHeader("Content-Type", "application/json");
+    request.send(JSON.stringify({graphName: graphName}));
+
+}
+
+function resetStats(graphName) {
+
+    var request = createRequest();
+    request.open("PATCH", getUrl() + '/graph/lifetime');
+    request.setRequestHeader("Content-Type", "application/json");
+    request.send(JSON.stringify({}));
+
+}
+
+function createRequest() {
+    var xmlhttp = (window.XMLHttpRequest) ? new XMLHttpRequest() : new ActiveXObject("Microsoft.XMLHTTP");
+    xmlhttp.onreadystatechange = function () {
+        if (xmlhttp.readyState == 4) {
+            if (xmlhttp.status != 200) {
+                console.log('Sorry, something went wrong.');
+            }
+        }
+    };
+    return xmlhttp;
 }
 
 function initGraph() {
@@ -128,6 +156,13 @@ window.chartColors = {
 
 function adjustScale() {
     config.options.scales.yAxes[0].ticks.suggestedMax = config.data.datasets[0].data[config.data.datasets[0].data.length - 1] * 1.2;
+}
+
+function setScale(event, params) {
+    var newScale = document.getElementById('scale').value;
+    if (newScale > 0) {
+        config.options.scales.yAxes[0].ticks.suggestedMax = newScale;
+    }
 }
 
 function createSnapshot() {

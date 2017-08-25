@@ -1,5 +1,6 @@
 package com.github.rfoltyns.vertx;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.github.rfoltyns.stats.SocketPublisher;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.http.HttpServer;
@@ -59,11 +60,41 @@ public class VertxHttpServer extends AbstractVerticle {
                 .handler(routingContext -> {
                     String metricsType = routingContext.request().getParam("metricsType");
                     try {
+                        JsonNode body = Json.mapper.readTree(routingContext.getBodyAsString());
+                        String graphName = body.get("graphName").asText();
+                        boolean reset = body.has("reset") ? body.get("reset").asBoolean() : false;
+
+                        if (reset) {
+                            Collector.CollectorHolder.INSTANCE.reset();
+                        }
+                        if ("realtime".equals(metricsType)) {
+                            Collector.CollectorHolder.INSTANCE.addSnapshotListener(new SocketPublisher(graphName, vertx));
+                        } else {
+                            Collector.CollectorHolder.INSTANCE.addSummaryListener(new SocketPublisher(graphName, vertx));
+                        }
+                    } catch (IOException e) {
+                        new RuntimeException(e.getMessage(), e);
+                    }
+                });
+
+        router.patch("/graph/:metricsType")
+                .consumes("application/json")
+                .produces("application/json")
+                .handler(routingContext -> {
+                    Collector.CollectorHolder.INSTANCE.reset();
+                });
+
+        router.delete("/graph/:metricsType")
+                .consumes("application/json")
+                .produces("application/json")
+                .handler(routingContext -> {
+                    String metricsType = routingContext.request().getParam("metricsType");
+                    try {
                         String graphName = Json.mapper.readTree(routingContext.getBodyAsString()).get("graphName").asText();
                         if ("realtime".equals(metricsType)) {
-                            VertxLoadClient.CollectorHolder.INSTANCE.addSnapshotListener(new SocketPublisher(graphName, vertx));
+                            Collector.CollectorHolder.INSTANCE.removeSnapshotListenerByName(graphName);
                         } else {
-                            VertxLoadClient.CollectorHolder.INSTANCE.addSummaryListener(new SocketPublisher(graphName, vertx));
+                            Collector.CollectorHolder.INSTANCE.removeSummaryListenerByName(graphName);
                         }
                     } catch (IOException e) {
                         new RuntimeException(e.getMessage(), e);

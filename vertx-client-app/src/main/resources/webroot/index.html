@@ -14,14 +14,29 @@
                 -webkit-user-select: none;
                 -ms-user-select: none;
             }
+            .button {
+                position: relative;
+                left: 0.5em;
+                width: 2.7em;
+                height: 2.7em;
+                margin-top: 0.6em;
+                text-align: center;
+                line-height: 2.6em;
+                color: black;
+            }
         </style>
     </head>
 
     <body onload="init();">
         <div style="width:75%;">
             <canvas id="canvas"></canvas>
+            <input type="button" onclick="registerGraph('graph1', 'lifetime');" value="Start">
+            <input type="button" onclick="unregisterGraph('graph1', 'lifetime');" value="Stop">
             <input type="button" onclick="adjustScale();" value="Adjust scale">
             <input type="button" onclick="createSnapshot();" value="Create snapshot">
+            <input type="button" onclick="resetStats('graph1', 'lifetime');" value="Reset">
+            <input type="button" onclick="setScale()" value="Set scale">
+            <input id="scale" type="text" placeholder="Max scale" >
         </div>
     </body>
 

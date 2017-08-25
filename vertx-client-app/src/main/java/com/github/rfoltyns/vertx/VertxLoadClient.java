@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.github.rfoltyns.stats.ResultCollector;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.eventbus.DeliveryOptions;
 import io.vertx.core.eventbus.Message;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
@@ -25,12 +26,7 @@ public class VertxLoadClient extends AbstractVerticle {
     private static int numberOfRequestsPerThread = 100;
     private Random random = new Random();
 
-    public static class CollectorHolder {
-        public static final ResultCollector INSTANCE =
-                new ResultCollector(new double[]{10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99, 99.9, 99.99, 99.999})
-                        .refreshEachMillis(100)
-                        .printEachMillis(1000);
-    }
+    private DeliveryOptions resultDeliverOptions = new DeliveryOptions().setCodecName(CollectorMessageCodec.class.getSimpleName());
 
     @Override
     public void start() throws Exception {
@@ -38,12 +34,13 @@ public class VertxLoadClient extends AbstractVerticle {
                 new HttpClientOptions()
 //                        .setPipelining(true)
 //                        .setPipeliningLimit(50)
-                        .setMaxPoolSize(500)
+                        .setMaxPoolSize(1000)
                         .setTcpNoDelay(true)
                         .setKeepAlive(true)
                         .setReuseAddress(true)
                         .setUsePooledBuffers(true)
         );
+        vertx.eventBus().registerCodec(new CollectorMessageCodec());
 
         vertx.eventBus().consumer("load", (Message<String> message) -> {
             ScheduleRequest scheduleRequest;
@@ -60,8 +57,7 @@ public class VertxLoadClient extends AbstractVerticle {
             } else {
                 System.out.println("Messages created in " + (System.currentTimeMillis() - start + "ms"));
             }
-
-            CollectorHolder.INSTANCE.setRequestsPerSecond(scheduledFutures.size() * numberOfRequestsPerThread);
+            Collector.CollectorHolder.INSTANCE.setRequestsPerSecond(scheduledFutures.size() * numberOfRequestsPerThread);
         });
 
     }
@@ -85,14 +81,14 @@ public class VertxLoadClient extends AbstractVerticle {
                 try {
                     ClientMessage response = Json.mapper.readValue(body.getBytes(), ClientMessage.class);
                     response.setProcessedAt(System.currentTimeMillis());
-                    CollectorHolder.INSTANCE.add(response);
+                    vertx.eventBus().publish("resultCollector", response, resultDeliverOptions);
 //                    System.out.println(response.metrics());
                 } catch  (IOException e) {
                     System.out.println(e.getMessage());
                     throw new RuntimeException(e);
                 }
                 httpClientResponse.headers().add("Content-Length", String.valueOf(body.length()));
-            });
+            }).exceptionHandler(event -> System.out.println(event.getMessage()));
         })
         .write(Buffer.buffer(bytes))
         .end();

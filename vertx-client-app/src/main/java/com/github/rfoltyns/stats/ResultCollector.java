@@ -8,11 +8,12 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class ResultCollector {
 
-    public static final int PRECISION = 3;
+    public static final int PRECISION = 5;
     private final double[] percentiles;
 
     private final AtomicReference<Queue<ClientMessage>> resultsReference =
@@ -20,17 +21,17 @@ public class ResultCollector {
     private final AtomicReference<Collection<Percentiles>> snapshotsReference =
             new AtomicReference<>(new ConcurrentLinkedQueue<>());
 
-    private final List<WeightedPercentile> processedPercentiles = new ArrayList<>();
-    private final List<WeightedPercentile> receivedPercentiles = new ArrayList<>();
-    private final List<WeightedPercentile> servicedPercentiles = new ArrayList<>();
+    private final Collection<WeightedPercentile> processedPercentiles = new ConcurrentLinkedQueue<>();
+    private final Collection<WeightedPercentile> receivedPercentiles = new ConcurrentLinkedQueue<>();
+    private final Collection<WeightedPercentile> servicedPercentiles = new ConcurrentLinkedQueue<>();
 
     private Timer timer = new Timer();
 
     private int requestsPerSecond;
-    private int numberOfCollectedSamples;
+    private final AtomicInteger numberOfCollectedSamples = new AtomicInteger();
 
-    private List<StatsListener> snapshotListeners = new ArrayList<>();
-    private List<StatsListener> summaryListeners = new ArrayList<>();
+    private Collection<StatsListener> snapshotListeners = new ArrayList<>();
+    private Collection<StatsListener> summaryListeners = new ArrayList<>();
 
     public ResultCollector(double[] percentiles) {
         this.percentiles = percentiles;
@@ -47,7 +48,7 @@ public class ResultCollector {
         this.requestsPerSecond = requestsPerSecond;
     }
 
-    private void init(List<WeightedPercentile> processedPercentiles, double[] percentiles) {
+    private void init(Collection<WeightedPercentile> processedPercentiles, double[] percentiles) {
         for (double percentile : percentiles) {
             processedPercentiles.add(new WeightedPercentile(percentile));
         }
@@ -78,9 +79,9 @@ public class ResultCollector {
                         serviceTimeAveragePercentiles[ii] = getPercentiles(percentiles[ii], getServiceTime(0, resultList.size(), resultList));
                     }
 
-                    Percentiles snapshot = new Percentiles(resultList.size(), processedAveragePercentiles, receivedAveragePercentiles, serviceTimeAveragePercentiles);
+                    Percentiles snapshot = new Percentiles(requestsPerSecond, resultList.size(), processedAveragePercentiles, receivedAveragePercentiles, serviceTimeAveragePercentiles);
                     snapshotsReference.get().add(snapshot);
-                    numberOfCollectedSamples += resultList.size();
+                    numberOfCollectedSamples.addAndGet(resultList.size());
 
                     notifySnapshotListeners(snapshot);
                 }
@@ -99,8 +100,9 @@ public class ResultCollector {
 
                     StringBuilder sb = new StringBuilder("\nResponse time;");
 
+                    Iterator<WeightedPercentile> procPercentileIterator = processedPercentiles.iterator();
                     for (int ii = 0; ii < percentiles.length; ii++) {
-                        WeightedPercentile weightedPercentile = processedPercentiles.get(ii);
+                        WeightedPercentile weightedPercentile = procPercentileIterator.next();
                         for (Percentiles snapshot : latestSnapshots) {
                             weightedPercentile.add(snapshot.numberOfSamples, snapshot.processedAveragePercentiles[ii]);
                         }
@@ -108,8 +110,9 @@ public class ResultCollector {
                     }
 
                     sb.append("\nAvg. time to client;");
+                    Iterator<WeightedPercentile> rcvPercentileIterator = receivedPercentiles.iterator();
                     for (int ii = 0; ii < percentiles.length; ii++) {
-                        WeightedPercentile weightedPercentile = receivedPercentiles.get(ii);
+                        WeightedPercentile weightedPercentile = rcvPercentileIterator.next();
                         for (Percentiles snapshot : latestSnapshots) {
                             weightedPercentile.add(snapshot.numberOfSamples, snapshot.receivedAveragePercentiles[ii]);
                         }
@@ -117,15 +120,16 @@ public class ResultCollector {
                     }
 
                     sb.append("\nAvg. service time;");
+                    Iterator<WeightedPercentile> svcPercentileIterator = servicedPercentiles.iterator();
                     for (int ii = 0; ii < percentiles.length; ii++) {
-                        WeightedPercentile weightedPercentile = servicedPercentiles.get(ii);
+                        WeightedPercentile weightedPercentile = svcPercentileIterator.next();
                         for (Percentiles snapshot : latestSnapshots) {
                             weightedPercentile.add(snapshot.numberOfSamples, snapshot.serviceTimeAveragePercentiles[ii]);
                         }
                         sb.append(toPrecision(PRECISION, weightedPercentile.value())).append(";");
                     }
 
-                    notifySummaryListeners(new Percentiles(numberOfCollectedSamples,
+                    notifySummaryListeners(new Percentiles(requestsPerSecond, numberOfCollectedSamples.get(),
                             toArray(processedPercentiles),
                             toArray(receivedPercentiles),
                             toArray(servicedPercentiles)));
@@ -157,7 +161,7 @@ public class ResultCollector {
         });
     }
 
-    private double[] toArray(List<WeightedPercentile> percentileList) {
+    private double[] toArray(Collection<WeightedPercentile> percentileList) {
         return percentileList.stream()
                 .mapToDouble(weightedPercentile -> weightedPercentile.getValue())
                 .toArray();
@@ -216,5 +220,26 @@ public class ResultCollector {
 
     public void addSummaryListener(StatsListener socketPublisher) {
         summaryListeners.add(socketPublisher);
+    }
+
+    public void removeSnapshotListenerByName(String listenerName) {
+        snapshotListeners.removeIf(listener -> listenerName.equals(listener.getTarget()));
+    }
+
+    public void removeSummaryListenerByName(String listenerName) {
+        summaryListeners.removeIf(listener -> listenerName.equals(listener.getTarget()));
+    }
+
+    public void reset() {
+        System.out.println("Resetting stats");
+        numberOfCollectedSamples.set(0);
+        processedPercentiles.forEach(weightedPercentile -> reset(weightedPercentile));
+        servicedPercentiles.forEach(weightedPercentile -> reset(weightedPercentile));
+        receivedPercentiles.forEach(weightedPercentile -> reset(weightedPercentile));
+    }
+
+    private void reset(WeightedPercentile weightedPercentile) {
+        weightedPercentile.setValue(0);
+        weightedPercentile.setNumberOfSamples(0);
     }
 }
