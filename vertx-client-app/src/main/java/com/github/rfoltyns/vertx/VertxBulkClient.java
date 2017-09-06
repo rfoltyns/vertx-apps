@@ -10,6 +10,8 @@ import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.json.Json;
 import org.apache.commons.math.stat.descriptive.rank.Percentile;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -18,6 +20,8 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class VertxBulkClient extends AbstractVerticle {
+
+    private final Logger console = LogManager.getLogger(VertxBulkClient.class);
 
     private HttpClient httpClient;
     private AtomicInteger counter = new AtomicInteger();
@@ -72,9 +76,9 @@ public class VertxBulkClient extends AbstractVerticle {
                             response.setProcessedAt(System.currentTimeMillis());
                             CollectorHolder.INSTANCE.add(response);
 
-                            System.out.println(response.metrics());
+                            console.debug(response.metrics());
                         } catch (IOException e) {
-                            System.out.println(e.getMessage());
+                            console.error(e.getMessage());
                             throw new RuntimeException(e);
                         }
                         httpClientResponse.headers().add("Content-Length", String.valueOf(body.length()));
@@ -85,7 +89,7 @@ public class VertxBulkClient extends AbstractVerticle {
                 .end();
             }
 
-            System.out.println("Messages created in " + (System.currentTimeMillis() - start + "ms"));
+            console.info("Messages created in {}ms", System.currentTimeMillis() - start);
 
         });
 

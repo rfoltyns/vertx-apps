@@ -32,14 +32,6 @@ public class ScheduleRequest {
         this.consumer = consumer;
     }
 
-    @Override
-    public String toString() {
-        return "ScheduleRequest{" +
-                "numberOfRequests=" + numberOfRequests +
-                ", delayInMillis=" + delayInMillis +
-                '}';
-    }
-
     public int getNumberOfThreads() {
         return numberOfThreads;
     }
@@ -54,5 +46,18 @@ public class ScheduleRequest {
 
     public void setDelayDeviation(int delayDeviation) {
         this.delayDeviation = delayDeviation;
+    }
+
+    @Override
+    public String toString() {
+        return new StringBuilder(128)
+                .append("ScheduleRequest {")
+                .append("numberOfRequests=").append(numberOfRequests)
+                .append(", delayInMillis=").append( delayInMillis)
+                .append(", consumer='").append( consumer).append( '\'')
+                .append(", numberOfThreads=").append( numberOfThreads)
+                .append(", delayDeviation=").append( delayDeviation)
+                .append('}')
+                .toString();
     }
 }

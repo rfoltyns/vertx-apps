@@ -9,6 +9,10 @@ import io.vertx.core.http.HttpClientOptions;
 import io.vertx.core.http.HttpClientRequest;
 import io.vertx.core.json.Json;
 import org.apache.commons.math.stat.descriptive.rank.Percentile;
+import org.apache.juli.logging.LogFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -18,6 +22,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class VertxClient extends AbstractVerticle {
+
+    private final Logger console = LogManager.getLogger(VertxClient.class);
 
     private HttpClient httpClient;
     private AtomicInteger counter = new AtomicInteger();
@@ -59,28 +65,26 @@ public class VertxClient extends AbstractVerticle {
                 }
 
                 request.headers().add("Content-Length", String.valueOf(bytes.length));
-                request.handler(httpClientResponse -> {
-                    httpClientResponse.bodyHandler(body -> {
-                        try {
-                            ClientMessage response = Json.mapper.readValue(body.getBytes(), ClientMessage.class);
-                            response.setProcessedAt(System.currentTimeMillis());
-                            resultList.add(response);
+                request.handler(httpClientResponse -> httpClientResponse.bodyHandler(body -> {
+                    try {
+                        ClientMessage response = Json.mapper.readValue(body.getBytes(), ClientMessage.class);
+                        response.setProcessedAt(System.currentTimeMillis());
+                        resultList.add(response);
 
-//                            System.out.println(response.metrics());
-                        } catch (IOException e) {
-                            System.out.println(e.getMessage());
-                            throw new RuntimeException(e);
-                        }
-                        httpClientResponse.headers().add("Content-Length", String.valueOf(body.length()));
-                    });
-                })
+                        console.debug("{}", response);
+                    } catch (IOException e) {
+                        console.error(e.getMessage());
+                        throw new RuntimeException(e);
+                    }
+                    httpClientResponse.headers().add("Content-Length", String.valueOf(body.length()));
+                }))
                 .write(Buffer.buffer(bytes))
                 .end();
             }
 
             printStats(scheduleRequest.getNumberOfRequests());
 
-            System.out.println("Messages created in " + (System.currentTimeMillis() - start + "ms"));
+            console.info("Messages created in {}ms", System.currentTimeMillis() - start);
 
         });
 
@@ -96,26 +100,27 @@ public class VertxClient extends AbstractVerticle {
             @Override
             public void run() {
                 if (resultList.size() > 0) {
-                    System.out.println("\nRequests sent: " + counter.get());
-                    System.out.println("\nPercentiles[10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99, 99.9, 99.99, 99.999]");
+                    console.info("\nRequests sent: {}", counter.get());
+                    console.info("\nPercentiles[10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99, 99.9, 99.99, 99.999]");
 
                     double[] percentiles = new double[]{10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99, 99.9, 99.99, 99.999};
 
-                    StringBuilder sb = new StringBuilder("\nAvg. time to client;");
+                    StringBuilder sb = new StringBuilder(512);
+                    sb.append("\nAvg. time to client;");
                     for (double percentile : percentiles) {
-                        sb.append(getReceivedAvg(percentile) + ";");
+                        sb.append(getReceivedAvg(percentile)).append(";");
                     }
 
                     sb.append("\nAvg. response time;");
                     for (double percentile : percentiles) {
-                        sb.append(getProcessedAvg(percentile) + ";");
+                        sb.append(getProcessedAvg(percentile)).append(";");
                     }
 
                     sb.append("\nAvg. service time;");
                     for (double percentile : percentiles) {
-                        sb.append(getServiceTime(percentile, 0, resultList.size()) + ";");
+                        sb.append(getServiceTime(percentile, 0, resultList.size())).append(";");
                     }
-                    System.out.println(sb.toString());
+                    console.info(sb.toString());
 
                     resultList.clear();
                 }
@@ -125,7 +130,7 @@ public class VertxClient extends AbstractVerticle {
 
     private double getReceivedAvg(double percentile) {
         double[] values = new double[resultList.size()];
-//        long sum = 0;
+
         int index = 0;
         for (ClientMessage message : resultList) {
             values[index++] = (message.getReceivedAt() - message.getCreatedAt());
@@ -153,12 +158,7 @@ public class VertxClient extends AbstractVerticle {
         int index = 0;
         double[] values = new double[resultList.size()];
         for (ClientMessage message : resultList) {
-//            if (index >= begin && index < offset) {
-                values[index++] = (message.getProcessedAt() - message.getReceivedAt());
-//            }
-//            if (++index > begin + offset) {
-//                break;
-//            }
+            values[index++] = (message.getProcessedAt() - message.getReceivedAt());
         }
         return toPrecision(2, new Percentile().evaluate(values, percentile));
     }

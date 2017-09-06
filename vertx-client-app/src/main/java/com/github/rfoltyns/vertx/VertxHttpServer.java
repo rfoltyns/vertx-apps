@@ -16,12 +16,16 @@ import io.vertx.ext.web.handler.sockjs.BridgeOptions;
 import io.vertx.ext.web.handler.sockjs.PermittedOptions;
 import io.vertx.ext.web.handler.sockjs.SockJSHandler;
 import io.vertx.ext.web.impl.RouterImpl;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
+
 
 public class VertxHttpServer extends AbstractVerticle {
 
     private HttpServer httpServer = null;
+    private Logger console = LogManager.getLogger(VertxHttpServer.class);
 
     @Override
     public void start() throws Exception {
@@ -36,12 +40,12 @@ public class VertxHttpServer extends AbstractVerticle {
         });
 
         router.post("/schedule").handler(event -> {
-                System.out.println("incoming request!");
+                console.info("Processing schedule request");
                 ScheduleRequest scheduleRequest;
                 try {
                     scheduleRequest = Json.mapper.readValue(event.getBody().getBytes(), ScheduleRequest.class);
                     vertx.eventBus().send(scheduleRequest.getConsumer(), Json.mapper.writeValueAsString(scheduleRequest));
-                    System.out.println("body: " + scheduleRequest);
+                    console.info("Scheduled request: {}", scheduleRequest);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -112,7 +116,7 @@ public class VertxHttpServer extends AbstractVerticle {
                 .addOutboundPermitted(new PermittedOptions().setAddressRegex("graph.*"));
         return SockJSHandler.create(vertx).bridge(options, event -> {
             if (event.type() == BridgeEventType.SOCKET_CREATED) {
-                System.out.println("A socket was created");
+                console.info("Socket created");
             }
             event.complete(true);
         });

@@ -3,30 +3,25 @@
 
     <Appenders>
         <Console name="CONSOLE" />
-        <Elasticsearch name="elasticsearchAsyncBatch" messageOnly="true" >
-            <JsonLayout compact="true" />
-            <AsyncBatchDelivery indexName="sampleapp"
-                                batchSize="10000"
-                                deliveryInterval="3000" >
+        <Elasticsearch name="samples" messageOnly="true">
+            <AsyncBatchDelivery indexName="samples"
+                                batchSize="50000"
+                                deliveryInterval="500" >
                 <JestHttp serverUris="http://localhost:9200"
                           connTimeout="500"
-                          readTimeout="5000"
-                          maxTotalConnection="40"
-                          defaultMaxTotalConnectionPerRoute="4" />
-                <!--
-                <ElasticsearchBulkProcessor serverUris="tcp://localhost:9300" />
-                -->
-                <NoopFailoverPolicy />
+                          readTimeout="30000"
+                          defaultMaxTotalConnectionPerRoute="8" />
             </AsyncBatchDelivery>
         </Elasticsearch>
-        <Async name="asyncLogger">
-            <AppenderRef ref="elasticsearchAsyncBatch" />
+        <Async name="asyncSamples">
+            <AppenderRef ref="samples" />
         </Async>
+
     </Appenders>
 
     <Loggers>
-        <AsyncLogger name="elasticsearch" level="info" additivity="false">
-            <AppenderRef ref="asyncLogger" />
+        <AsyncLogger name="samples" level="info" additivity="false">
+            <AppenderRef ref="asyncSamples" />
         </AsyncLogger>
         <Logger name="org.elasticsearch" level="trace">
             <AppenderRef ref="CONSOLE" />

@@ -1,8 +1,18 @@
 package com.github.rfoltyns.stats;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.github.rfoltyns.vertx.ClientMessage;
+import io.vertx.core.impl.StringEscapeUtils;
+import io.vertx.core.json.Json;
 import org.apache.commons.math.stat.descriptive.rank.Percentile;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.message.Message;
+import org.apache.logging.log4j.message.MessageFactory;
+import org.apache.logging.log4j.message.SimpleMessage;
+import org.apache.logging.log4j.message.StringFormattedMessage;
 
+import javax.xml.stream.events.Characters;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -12,6 +22,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class ResultCollector {
+
+    private final Logger console = LogManager.getLogger(ResultCollector.class);
 
     public static final int PRECISION = 5;
     private final double[] percentiles;
@@ -32,6 +44,37 @@ public class ResultCollector {
 
     private Collection<StatsListener> snapshotListeners = new ArrayList<>();
     private Collection<StatsListener> summaryListeners = new ArrayList<>();
+    private Logger samples = LogManager.getLogger("samples", new MessageFactory() {
+        @Override
+        public Message newMessage(Object message) {
+            try {
+                return new SimpleMessage(Json.mapper.writeValueAsString(message));
+            } catch (Exception e) {
+                console.error(e.getMessage());
+            }
+            return null;
+        }
+
+        @Override
+        public Message newMessage(String message) {
+            try {
+                return new SimpleMessage(message);
+            } catch (Exception e) {
+                console.error(e.getMessage());
+            }
+            return null;
+        }
+
+        @Override
+        public Message newMessage(String message, Object... params) {
+            try {
+                return new SimpleMessage(Json.mapper.writeValueAsString(params[0]));
+            } catch (Exception e) {
+                console.error(e.getMessage());
+            }
+            return null;
+        }
+    });
 
     public ResultCollector(double[] percentiles) {
         this.percentiles = percentiles;
@@ -41,6 +84,7 @@ public class ResultCollector {
     }
 
     public void add(ClientMessage result) {
+        samples.info(result.metrics());
         resultsReference.get().add(result);
     }
 
@@ -95,10 +139,11 @@ public class ResultCollector {
             public void run() {
                 Collection<Percentiles> latestSnapshots = getLatestSnapshots();
                 if (latestSnapshots.size() > 0) {
-                    System.out.println("Requests per second: " + requestsPerSecond);
-                    System.out.println("Percentiles[10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99, 99.9, 99.99, 99.999]");
+                    console.info("Requests per second: {}", requestsPerSecond);
+                    console.info("Percentiles[10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99, 99.9, 99.99, 99.999]");
 
-                    StringBuilder sb = new StringBuilder("\nResponse time;");
+                    StringBuilder sb = new StringBuilder(512);
+                    sb.append("\nResponse time;");
 
                     Iterator<WeightedPercentile> procPercentileIterator = processedPercentiles.iterator();
                     for (int ii = 0; ii < percentiles.length; ii++) {
@@ -133,8 +178,8 @@ public class ResultCollector {
                             toArray(processedPercentiles),
                             toArray(receivedPercentiles),
                             toArray(servicedPercentiles)));
-                    System.out.println(sb.toString());
-                    System.out.println("Samples: " + numberOfCollectedSamples);
+                    console.info(sb.toString());
+                    console.info("Samples: {}", numberOfCollectedSamples);
 
                 }
             }
@@ -231,7 +276,7 @@ public class ResultCollector {
     }
 
     public void reset() {
-        System.out.println("Resetting stats");
+        console.info("Resetting stats");
         numberOfCollectedSamples.set(0);
         processedPercentiles.forEach(weightedPercentile -> reset(weightedPercentile));
         servicedPercentiles.forEach(weightedPercentile -> reset(weightedPercentile));

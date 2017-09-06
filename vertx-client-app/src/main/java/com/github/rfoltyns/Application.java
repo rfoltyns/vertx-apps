@@ -1,18 +1,20 @@
 package com.github.rfoltyns;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.github.rfoltyns.vertx.*;
+import com.github.rfoltyns.vertx.Collector;
+import com.github.rfoltyns.vertx.VertxBulkClient;
+import com.github.rfoltyns.vertx.VertxHttpServer;
+import com.github.rfoltyns.vertx.VertxLoadClient;
 import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.json.Json;
 import org.slf4j.LoggerFactory;
 
-import java.util.concurrent.atomic.AtomicInteger;
-
 public class Application {
 
-    private static final org.slf4j.Logger LOG = LoggerFactory.getLogger("elasticsearch");
+    private static final org.slf4j.Logger LOG = LoggerFactory.getLogger(Application.class);
+
     public static final Vertx VERTX = Vertx.factory.vertx(
             new VertxOptions()
                     .setWorkerPoolSize(100)
@@ -27,7 +29,8 @@ public class Application {
         VERTX.deployVerticle(Collector.class.getName());
 
         Json.mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-        System.out.println("Vertx server started");
+
+        LOG.info("Vertx server started");
     }
 
 }
