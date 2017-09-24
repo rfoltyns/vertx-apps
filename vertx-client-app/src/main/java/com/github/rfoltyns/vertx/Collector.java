@@ -1,14 +1,17 @@
 package com.github.rfoltyns.vertx;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.rfoltyns.stats.ResultCollector;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.eventbus.Message;
-import io.vertx.core.json.Json;
 
 import java.io.IOException;
 
+
 public class Collector extends AbstractVerticle {
+
+    private ObjectMapper mapper = new ObjectMapper();
 
     public static class CollectorHolder {
         public static final ResultCollector INSTANCE =
@@ -21,7 +24,7 @@ public class Collector extends AbstractVerticle {
     public void start() throws Exception {
         vertx.eventBus().consumer("resultCollector", (Message<Buffer> message) -> {
             try {
-                CollectorHolder.INSTANCE.add(Json.mapper.readValue(message.body().getBytes(), ClientMessage.class));
+                CollectorHolder.INSTANCE.add(mapper.readValue(message.body().getBytes(), ClientMessage.class));
             } catch (IOException e) {
                 e.printStackTrace();
             }

@@ -31,7 +31,8 @@ public class VertxLoadClient extends AbstractVerticle {
     private static int numberOfRequestsPerThread = 100;
     private Random random = new Random();
 
-    private DeliveryOptions resultDeliverOptions = new DeliveryOptions().setCodecName(CollectorMessageCodec.class.getSimpleName());
+    private DeliveryOptions resultDeliverOptions = new DeliveryOptions()
+            .setCodecName(CollectorMessageCodec.class.getSimpleName());
 
     @Override
     public void start() throws Exception {
@@ -39,19 +40,17 @@ public class VertxLoadClient extends AbstractVerticle {
                 new HttpClientOptions()
 //                        .setPipelining(true)
 //                        .setPipeliningLimit(50)
-                        .setMaxPoolSize(1000)
+                        .setMaxPoolSize(500)
                         .setTcpNoDelay(true)
                         .setKeepAlive(true)
                         .setReuseAddress(true)
                         .setUsePooledBuffers(true)
+                .setIdleTimeout(30000)
         );
         vertx.eventBus().registerCodec(new CollectorMessageCodec());
 
         vertx.eventBus().consumer("load", (Message<String> message) -> {
-            ScheduleRequest scheduleRequest;
-            scheduleRequest = deserialize(message, ScheduleRequest.class);
-
-            long start = System.currentTimeMillis();
+            ScheduleRequest scheduleRequest =  deserialize(message, ScheduleRequest.class);
 
             for (int ii = 0; ii < scheduleRequest.getNumberOfThreads(); ii++) {
                 scheduleSendRequestTask(scheduleRequest);
@@ -60,18 +59,23 @@ public class VertxLoadClient extends AbstractVerticle {
             if (scheduleRequest.getNumberOfThreads() < 0) {
                 cancelRunningTasks(scheduleRequest);
             } else {
-                console.info("Messages created in {}ms", System.currentTimeMillis() - start);
+                console.info("Request scheduled: ", scheduleRequest);
             }
-            Collector.CollectorHolder.INSTANCE.setRequestsPerSecond(scheduledFutures.size() * numberOfRequestsPerThread);
         });
 
     }
 
     private void sendRequest(ScheduleRequest scheduleRequest) {
-        HttpClientRequest request = httpClient.post(8080, "localhost", "/");
         ClientMessage clientMessage = new ClientMessage(counter.incrementAndGet());
         clientMessage.setDelayMillis(scheduleRequest.getDelayInMillis());
         clientMessage.setDelayDeviation(scheduleRequest.getDelayDeviation());
+        clientMessage.setConsumer(scheduleRequest.getConsumer());
+        clientMessage.setNumberOfHops(scheduleRequest.getNumberOfHops());
+
+        byte[] data = new byte[scheduleRequest.getMessageSizeInBytes()];
+        random.nextBytes(data);
+        clientMessage.setData(data);
+
         byte[] bytes;
         try {
             bytes = Json.mapper.writeValueAsBytes(clientMessage);
@@ -79,6 +83,8 @@ public class VertxLoadClient extends AbstractVerticle {
             throw new RuntimeException(e);
         }
 
+        HttpClientRequest request = httpClient.post(8080, "localhost", "/");
+        request.setTimeout(30000);
         request.headers().add("Content-Type", "application/json");
         request.headers().add("Content-Length", String.valueOf(bytes.length));
         request.handler(httpClientResponse -> {
@@ -87,7 +93,6 @@ public class VertxLoadClient extends AbstractVerticle {
                     ClientMessage response = Json.mapper.readValue(body.getBytes(), ClientMessage.class);
                     response.setProcessedAt(System.currentTimeMillis());
                     vertx.eventBus().publish("resultCollector", response, resultDeliverOptions);
-                    console.debug("{}", response);
                 } catch  (IOException e) {
                     console.error(e.getMessage());
                     throw new RuntimeException(e);
@@ -119,6 +124,7 @@ public class VertxLoadClient extends AbstractVerticle {
                     Thread.currentThread().sleep(random.nextInt(19) + 1);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
+                    break;
                 }
             }
         };

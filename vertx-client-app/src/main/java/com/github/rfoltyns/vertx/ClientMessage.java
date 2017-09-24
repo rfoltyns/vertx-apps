@@ -8,11 +8,14 @@ import java.time.Instant;
 public class ClientMessage {
 
     private final int id;
+    private  String consumer;
     private Long createdAt;
     private Long receivedAt;
     private Long processedAt;
     private int delayMillis;
     private int delayDeviation;
+    private int numberOfHops;
+    private byte[] data;
 
     @JsonCreator
     public ClientMessage(@JsonProperty("id") int id) {
@@ -22,6 +25,14 @@ public class ClientMessage {
 
     public int getId() {
         return id;
+    }
+
+    public String getConsumer() {
+        return consumer;
+    }
+
+    public void setConsumer(String consumer) {
+        this.consumer = consumer;
     }
 
     public Long getCreatedAt() {
@@ -64,6 +75,14 @@ public class ClientMessage {
         this.delayDeviation = delayDeviation;
     }
 
+    public int getNumberOfHops() {
+        return numberOfHops;
+    }
+
+    public void setNumberOfHops(int numberOfHops) {
+        this.numberOfHops = numberOfHops;
+    }
+
     public String metrics() {
         return new StringBuilder(64)
                 .append("{\"messageId\":").append(id)
@@ -87,4 +106,7 @@ public class ClientMessage {
                 .toString();
     }
 
+    public void setData(byte[] data) {
+        this.data = data;
+    }
 }

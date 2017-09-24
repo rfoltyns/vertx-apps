@@ -6,11 +6,13 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 public class ServerMessage {
 
     private final int id;
+    private String consumer;
     private long createdAt;
     private long receivedAt;
     private long processedAt;
     private int delayMillis;
     private int delayDeviation;
+    private int numberOfHops;
 
     @JsonCreator
     public ServerMessage(@JsonProperty("id") int id, @JsonProperty("createdAt") long createdAt) {
@@ -20,6 +22,14 @@ public class ServerMessage {
 
     public int getId() {
         return id;
+    }
+
+    public String getConsumer() {
+        return consumer;
+    }
+
+    public void setConsumer(String consumer) {
+        this.consumer = consumer;
     }
 
     public long getCreatedAt() {
@@ -34,40 +44,27 @@ public class ServerMessage {
         return receivedAt;
     }
 
-    public void setProcessedAt(long processedAt) {
-        this.processedAt = processedAt;
-    }
-
     public void setReceivedAt(long receivedAt) {
         this.receivedAt = receivedAt;
+    }
+
+    public void setProcessedAt(long processedAt) {
+        this.processedAt = processedAt;
     }
 
     public int getDelayMillis() {
         return delayMillis;
     }
 
-    public void setDelayMillis(int delayMillis) {
-        this.delayMillis = delayMillis;
-    }
-
     public int getDelayDeviation() {
         return delayDeviation;
     }
 
-    public void setDelayDeviation(int delayDeviation) {
-        this.delayDeviation = delayDeviation;
+    public int getNumberOfHops() {
+        return numberOfHops;
     }
 
-    public String metrics() {
-        return new StringBuilder(64)
-                .append("Message[id=")
-                .append(id)
-                .append(", receivedIn: ")
-                .append(receivedAt - createdAt)
-//                .append(", processedIn: ")
-//                .append(processedAt - createdAt)
-                .append("]")
-                .toString();
+    public void setNumberOfHops(int numberOfHops) {
+        this.numberOfHops = numberOfHops;
     }
-
 }

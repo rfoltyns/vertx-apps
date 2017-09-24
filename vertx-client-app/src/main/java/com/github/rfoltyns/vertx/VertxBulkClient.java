@@ -37,11 +37,10 @@ public class VertxBulkClient extends AbstractVerticle {
     public void start() throws Exception {
         httpClient = vertx.createHttpClient(
                 new HttpClientOptions()
-                        .setPipelining(true)
-                        .setPipeliningLimit(20)
-                        .setMaxPoolSize(500)
+//                        .setPipelining(true)
+//                        .setPipeliningLimit(20)
+                        .setMaxPoolSize(5000)
                         .setKeepAlive(true)
-                        .setReuseAddress(true)
                         .setUsePooledBuffers(true)
         );
         vertx.eventBus().consumer("bulk", (Message<String> message) -> {
@@ -59,6 +58,8 @@ public class VertxBulkClient extends AbstractVerticle {
                 HttpClientRequest request = httpClient.post(8080, "localhost", "/");
 
                 ClientMessage clientMessage = new ClientMessage(counter.incrementAndGet());
+                clientMessage.setConsumer(scheduleRequest.getConsumer());
+                clientMessage.setNumberOfHops(scheduleRequest.getNumberOfHops());
                 clientMessage.setDelayMillis(scheduleRequest.getDelayInMillis());
                 byte[] bytes;
                 try {
@@ -84,7 +85,7 @@ public class VertxBulkClient extends AbstractVerticle {
                         httpClientResponse.headers().add("Content-Length", String.valueOf(body.length()));
                     });
                 })
-                .setTimeout(clientMessage.getDelayMillis() + 1000)
+                .setTimeout(clientMessage.getDelayMillis() * 3)
                 .write(Buffer.buffer(bytes))
                 .end();
             }

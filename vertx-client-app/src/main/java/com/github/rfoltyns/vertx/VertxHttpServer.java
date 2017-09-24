@@ -44,7 +44,7 @@ public class VertxHttpServer extends AbstractVerticle {
                 ScheduleRequest scheduleRequest;
                 try {
                     scheduleRequest = Json.mapper.readValue(event.getBody().getBytes(), ScheduleRequest.class);
-                    vertx.eventBus().send(scheduleRequest.getConsumer(), Json.mapper.writeValueAsString(scheduleRequest));
+                    vertx.eventBus().send(scheduleRequest.getType(), Json.mapper.writeValueAsString(scheduleRequest));
                     console.info("Scheduled request: {}", scheduleRequest);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
@@ -126,13 +126,4 @@ public class VertxHttpServer extends AbstractVerticle {
         return ErrorHandler.create();
     }
 
-    private Router graphRouter() {
-        Router router = Router.router(vertx);
-        router.route().handler(BodyHandler.create());
-
-        router.route().consumes("application/json");
-        router.route().produces("application/json");
-
-        return router;
-    }
 }
