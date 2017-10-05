@@ -16,6 +16,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.dropwizard.DropwizardMetricsOptions;
 import io.vertx.ext.dropwizard.MetricsService;
 import org.slf4j.LoggerFactory;
 
@@ -27,9 +28,9 @@ public class Application {
         System.out.println("Starting server");
         Vertx vertx = Vertx.factory.vertx(
                 new VertxOptions()
-//                        .setMetricsOptions(new MetricsOptions().setEnabled(true))
-                        .setWorkerPoolSize(50)
-                        .setEventLoopPoolSize(20)
+                        .setMetricsOptions(new DropwizardMetricsOptions().setEnabled(true))
+                        .setWorkerPoolSize(20)
+//                        .setEventLoopPoolSize(1)
 //                        .setInternalBlockingPoolSize(20)
         );
         vertx.deployVerticle(Consumer.class.getName(), new DeploymentOptions()
@@ -46,9 +47,6 @@ public class Application {
 //        Json.mapper = new ObjectMapper(new CBORFactory()).registerModule(new AfterburnerModule());
 
         vertx.deployVerticle(new VertxHttpServer());
-        MetricsService metricsService = MetricsService.create(vertx);
-        JsonObject metrics = metricsService.getMetricsSnapshot(vertx);
-        System.out.println(metrics);
 
         Json.mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
         System.out.println("Vertx server started");

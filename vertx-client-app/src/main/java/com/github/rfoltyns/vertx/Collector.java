@@ -16,7 +16,7 @@ public class Collector extends AbstractVerticle {
     public static class CollectorHolder {
         public static final ResultCollector INSTANCE =
                 new ResultCollector(new double[]{10, 20, 30, 40, 50, 60, 70, 80, 90, 95, 99, 99.9, 99.99, 99.999})
-                        .refreshEachMillis(100)
+                        .refreshEachMillis(1000)
                         .printEachMillis(1000);
     }
 

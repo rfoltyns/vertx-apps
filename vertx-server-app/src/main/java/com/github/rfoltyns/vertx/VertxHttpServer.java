@@ -12,6 +12,13 @@ import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.Json;
+import io.vertx.core.json.JsonObject;
+import io.vertx.core.metrics.Measured;
+import io.vertx.ext.dropwizard.MetricsService;
+import io.vertx.ext.dropwizard.impl.AbstractMetrics;
+import io.vertx.ext.web.Router;
+import io.vertx.ext.web.handler.BodyHandler;
+import io.vertx.ext.web.impl.RouterImpl;
 import org.omg.PortableInterceptor.SYSTEM_EXCEPTION;
 
 public class VertxHttpServer extends AbstractVerticle {
@@ -30,20 +37,27 @@ public class VertxHttpServer extends AbstractVerticle {
                 .setUsePooledBuffers(true)
         );
 
-        httpServer.requestHandler(request -> {
-            request.bodyHandler(
-                    bodyBuffer -> {
-                        Handler<AsyncResult<Message<Buffer>>> asyncResultHandler = getAsyncResultHandler(request);
-                        vertx.eventBus().send(
-                                "consumer1",
-                                bodyBuffer,
-                                defaultDeliveryOptions,
-                                asyncResultHandler);
-                    }
-            );
+        MetricsService metricsService = MetricsService.create(vertx);
+
+        Router router = new RouterImpl(vertx);
+        router.route().handler(BodyHandler.create());
+
+        router.get("/metrics").handler(event ->  {
+            String metricsJson = Json.encode(metricsService.getMetricsSnapshot(vertx));
+            event.response().headers().add("Content-Length", String.valueOf(metricsJson.length()));
+            event.response().write(metricsJson);
         });
 
-        httpServer.listen(Integer.valueOf(System.getProperty("vertx-server-port", "8080")));
+        router.post("/").handler(routingContext -> {
+                Handler<AsyncResult<Message<Buffer>>> asyncResultHandler = getAsyncResultHandler(routingContext.request());
+                vertx.eventBus().send(
+                        "consumer1",
+                        routingContext.getBody(),
+                        defaultDeliveryOptions,
+                        asyncResultHandler);
+        });
+
+        httpServer.requestHandler(router::accept).listen(Integer.valueOf(System.getProperty("vertx-server-port", "8080")));
     }
 
     private Handler<AsyncResult<Message<Buffer>>> getAsyncResultHandler(HttpServerRequest request) {
@@ -52,15 +66,6 @@ public class VertxHttpServer extends AbstractVerticle {
             response.headers().add("Content-Length", String.valueOf(event.result().body().length()));
             response.end(event.result().body());
         };
-    }
-
-    private byte[] serializeToBytes(ServerMessage serverMessage) {
-        try {
-            return Json.mapper.writeValueAsBytes(serverMessage);
-        } catch (JsonProcessingException e) {
-            System.out.println(serverMessage.getClass().getSimpleName() + " mapping error: " +  e.getMessage());
-            return new byte[0];
-        }
     }
 
 }

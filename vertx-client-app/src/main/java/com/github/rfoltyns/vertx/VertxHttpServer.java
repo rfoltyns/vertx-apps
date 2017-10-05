@@ -39,17 +39,17 @@ public class VertxHttpServer extends AbstractVerticle {
             ctx.reroute("/static/index.html");
         });
 
-        router.post("/schedule").handler(event -> {
+        router.post("/schedule").handler(request -> {
                 console.info("Processing schedule request");
                 ScheduleRequest scheduleRequest;
                 try {
-                    scheduleRequest = Json.mapper.readValue(event.getBody().getBytes(), ScheduleRequest.class);
+                    scheduleRequest = Json.mapper.readValue(request.getBody().getBytes(), ScheduleRequest.class);
                     vertx.eventBus().send(scheduleRequest.getType(), Json.mapper.writeValueAsString(scheduleRequest));
                     console.info("Scheduled request: {}", scheduleRequest);
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
-                HttpServerResponse response = event.response();
+                HttpServerResponse response = request.response();
                 response.headers().add("Content-Length", String.valueOf("Done".length()));
                 response.write("Done");
                 response.end();

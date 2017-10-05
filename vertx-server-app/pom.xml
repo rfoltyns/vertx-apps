@@ -57,10 +57,9 @@
         </dependency>
         <dependency>
             <groupId>io.vertx</groupId>
-            <artifactId>vertx-web-client</artifactId>
+            <artifactId>vertx-web</artifactId>
             <version>3.4.2</version>
         </dependency>
-
 
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
@@ -90,7 +89,7 @@
     </dependencies>
 
 
-    <!--<build>
+    <build>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -115,14 +114,6 @@
                         </configuration>
                     </execution>
                 </executions>
-            </plugin>
-        </plugins>
-    </build>-->
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
         </plugins>
     </build>
