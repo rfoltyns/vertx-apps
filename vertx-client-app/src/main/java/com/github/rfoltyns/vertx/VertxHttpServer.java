@@ -3,12 +3,14 @@ package com.github.rfoltyns.vertx;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.rfoltyns.stats.SocketPublisher;
 import io.vertx.core.AbstractVerticle;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServer;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.Json;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
+import io.vertx.ext.web.handler.CorsHandler;
 import io.vertx.ext.web.handler.ErrorHandler;
 import io.vertx.ext.web.handler.StaticHandler;
 import io.vertx.ext.web.handler.sockjs.BridgeEventType;
@@ -33,6 +35,13 @@ public class VertxHttpServer extends AbstractVerticle {
 
         Router router = new RouterImpl(vertx);
         router.route().handler(BodyHandler.create());
+        router.route().handler(CorsHandler.create("*")
+                .allowedMethod(HttpMethod.GET)
+                .allowedMethod(HttpMethod.POST)
+                .allowedMethod(HttpMethod.OPTIONS)
+                .allowedHeader("Content-Type")
+                .allowedHeader("Origin"));
+
         router.route("/static/*").handler(StaticHandler.create("webroot").setCachingEnabled(false));
 
         router.get("/").handler(ctx -> {

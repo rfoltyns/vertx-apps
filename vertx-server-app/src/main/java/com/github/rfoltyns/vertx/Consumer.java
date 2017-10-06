@@ -52,7 +52,6 @@ public class Consumer extends AbstractVerticle {
             message.setReceivedAt(System.currentTimeMillis());
 
             if (message.getConsumer() != null && message.getNumberOfHops() > 0) {
-//                console.info("Passing through. Port: " + System.getProperty("vertx-server-port"));
                 vertx.eventBus().send(message.getConsumer(),
                         Buffer.buffer(serialize(message)),
                         requestDeliveryOptions,

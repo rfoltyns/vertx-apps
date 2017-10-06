@@ -24,6 +24,10 @@
                 line-height: 2.6em;
                 color: black;
             }
+            div.json {
+              font-family: "Courier New", monospace;
+              white-space: pre;
+            }
         </style>
     </head>
 
@@ -35,8 +39,13 @@
             <input type="button" onclick="adjustScale();" value="Adjust scale">
             <input type="button" onclick="createSnapshot();" value="Create snapshot">
             <input type="button" onclick="resetStats('graph1', 'lifetime');" value="Reset">
+            <input type="button" onclick="getMetrics();" value="Get metrics">
             <input type="button" onclick="setScale()" value="Set scale">
             <input id="scale" type="text" placeholder="Max scale" >
+        </div>
+        <div id="metrics" class="json"></div>
+        <div style="width:75%;">
+            <input type="button" onclick="getMetrics();" value="Get metrics">
         </div>
     </body>
 

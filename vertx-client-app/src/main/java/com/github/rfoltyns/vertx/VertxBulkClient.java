@@ -85,7 +85,7 @@ public class VertxBulkClient extends AbstractVerticle {
                         httpClientResponse.headers().add("Content-Length", String.valueOf(body.length()));
                     });
                 })
-                .setTimeout(clientMessage.getDelayMillis() * 3)
+                .setTimeout(5000)
                 .write(Buffer.buffer(bytes))
                 .end();
             }

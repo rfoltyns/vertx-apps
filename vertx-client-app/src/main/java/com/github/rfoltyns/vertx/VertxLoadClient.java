@@ -84,7 +84,7 @@ public class VertxLoadClient extends AbstractVerticle {
         }
 
         HttpClientRequest request = httpClient.post(8080, "localhost", "/");
-        request.setTimeout(30000);
+        request.setTimeout(10000);
         request.headers().add("Content-Type", "application/json");
         request.headers().add("Content-Length", String.valueOf(bytes.length));
         request.handler(httpClientResponse -> {

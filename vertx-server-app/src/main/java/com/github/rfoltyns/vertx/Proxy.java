@@ -22,18 +22,10 @@ public class Proxy extends AbstractVerticle {
     private final Logger console = LogManager.getLogger(Proxy.class);
 
     private HttpClient httpClient;
-//    private WebClient httpClient;
 
     @Override
     public void start() throws Exception {
-//        httpClient = WebClient.create(vertx, new WebClientOptions()
-//                .setMaxPoolSize(250)
-//                .setTcpNoDelay(true)
-//                .setKeepAlive(true)
-//                .setReuseAddress(true)
-//                .setUsePooledBuffers(true)
-//                .setIdleTimeout(30000)
-//        );
+
         httpClient = vertx.createHttpClient(
                 new HttpClientOptions()
                         .setPipelining(true)
@@ -65,20 +57,7 @@ public class Proxy extends AbstractVerticle {
             request.headers().add("Content-Length", String.valueOf(buffer.length()));
             request.handler(responseHandler);
             request.write(buffer).end();
-//            request.handler(httpClientResponse -> {
-//                httpClientResponse.bodyHandler(responseBody -> {
-//                    httpClientResponse.headers().add("Content-Length", String.valueOf(responseBody.length()));
-//                    event.reply(Buffer.buffer(responseBody.getBytes()));
-//                }).exceptionHandler(new Handler<Throwable>() {
-//                    @Override
-//                    public void handle(Throwable event) {
-//                        console.error(event.getMessage());
-//                    }
-//                });
-//            })
-//            .exceptionHandler(exceptionContext -> {
-//                console.error("Send error: " + exceptionContext.getMessage());
-//            });
+
         }).exceptionHandler(exceptionContext -> {
             console.error("Consume error: " + exceptionContext.getMessage());
         });

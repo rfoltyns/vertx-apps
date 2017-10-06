@@ -7,10 +7,7 @@ import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.eventbus.DeliveryOptions;
 import io.vertx.core.eventbus.Message;
-import io.vertx.core.http.HttpServer;
-import io.vertx.core.http.HttpServerOptions;
-import io.vertx.core.http.HttpServerRequest;
-import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.http.*;
 import io.vertx.core.json.Json;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.metrics.Measured;
@@ -18,6 +15,7 @@ import io.vertx.ext.dropwizard.MetricsService;
 import io.vertx.ext.dropwizard.impl.AbstractMetrics;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
+import io.vertx.ext.web.handler.CorsHandler;
 import io.vertx.ext.web.impl.RouterImpl;
 import org.omg.PortableInterceptor.SYSTEM_EXCEPTION;
 
@@ -41,11 +39,19 @@ public class VertxHttpServer extends AbstractVerticle {
 
         Router router = new RouterImpl(vertx);
         router.route().handler(BodyHandler.create());
+        router.route().handler(CorsHandler.create("*")
+                .allowedMethod(HttpMethod.GET)
+                .allowedMethod(HttpMethod.POST)
+                .allowedMethod(HttpMethod.OPTIONS)
+                .allowedHeader("Content-Type")
+                .allowedHeader("Origin"));
 
         router.get("/metrics").handler(event ->  {
             String metricsJson = Json.encode(metricsService.getMetricsSnapshot(vertx));
+            event.response().headers().add("Content-Type", "application/json");
             event.response().headers().add("Content-Length", String.valueOf(metricsJson.length()));
             event.response().write(metricsJson);
+            event.response().end();
         });
 
         router.post("/").handler(routingContext -> {

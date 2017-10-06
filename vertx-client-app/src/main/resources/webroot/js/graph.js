@@ -176,3 +176,47 @@ function createSnapshot() {
     link.dispatchEvent(evt);
 
 }
+
+METRICS = [
+  'vertx.worker-pool-size',
+  'vertx.pools.worker.vert.x-worker-thread.queue-delay',
+  'vertx.pools.worker.vert.x-worker-thread.in-use',
+  'vertx.eventbus.messages.sent',
+  'vertx.eventbus.messages.pending',
+  'vertx.eventbus.messages.received',
+  'vertx.http.servers.0.0.0.0:8080.post-requests',
+  'vertx.http.servers.0.0.0.0:8080.requests',
+  'vertx.http.clients.post-requests',
+  'vertx.http.clients.requests',
+]
+function getMetrics() {
+    var request = createRequest();
+    request.open("GET", 'http://localhost:8080/metrics');
+    request.setRequestHeader("Content-Type", "application/json");
+    request.onreadystatechange = function() {
+        var status;
+        var data;
+        if (request.readyState == 4) { // `DONE`
+            status = request.status;
+            if (status == 200) {
+                data = JSON.parse(request.responseText);
+                printMetrics(data);
+            }
+        }
+    };
+    request.send();
+}
+
+function printMetrics(data) {
+
+    var doc = document.getElementById("metrics");
+    var selectedMetrics = {};
+    for (var ii = 0; ii < METRICS.length; ii++) {
+        var metricName = METRICS[ii];
+        if (data[metricName] != undefined) {
+            selectedMetrics[metricName] = data[metricName];
+        }
+    }
+    doc.innerHTML = JSON.stringify(selectedMetrics, null, 2);
+
+}
