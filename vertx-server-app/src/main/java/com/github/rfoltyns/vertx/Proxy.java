@@ -1,8 +1,6 @@
 package com.github.rfoltyns.vertx;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import io.vertx.core.AbstractVerticle;
-import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.eventbus.DeliveryOptions;
@@ -15,13 +13,14 @@ import io.vertx.core.json.Json;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.io.IOException;
-
 public class Proxy extends AbstractVerticle {
 
     private final Logger console = LogManager.getLogger(Proxy.class);
 
     private HttpClient httpClient;
+
+    private DeliveryOptions deliveryOptions = new DeliveryOptions()
+            .setCodecName(ServerMessageBufferCodec.class.getName());
 
     @Override
     public void start() throws Exception {
@@ -46,14 +45,14 @@ public class Proxy extends AbstractVerticle {
             Handler<HttpClientResponse> responseHandler = asyncResponse -> {
                 Handler<Buffer> responseBodyHandler = response -> {
                     event.headers().add("Content-Length", String.valueOf(response.length()));
-                    event.reply(response, new DeliveryOptions().setCodecName(ServerMessageBufferCodec.class.getName()));
+                    event.reply(response, deliveryOptions);
                 };
                 asyncResponse.bodyHandler(responseBodyHandler);
             };
 
             request.headers().add("Content-Type", "application/json");
             request.setTimeout(10000);
-            Buffer buffer = Buffer.buffer().appendBytes(serializeToBytes(serverMessage));
+            Buffer buffer = JsonUtils.encodeToBuffer(serverMessage);
             request.headers().add("Content-Length", String.valueOf(buffer.length()));
             request.handler(responseHandler);
             request.write(buffer).end();
@@ -63,22 +62,4 @@ public class Proxy extends AbstractVerticle {
         });
     }
 
-    private byte[] serializeToBytes(ServerMessage serverMessage) {
-        try {
-            return Json.mapper.writeValueAsBytes(serverMessage);
-        } catch (JsonProcessingException e) {
-            console.error(serverMessage.getClass().getSimpleName() + " mapping error", e.getMessage());
-            return new byte[0];
-        }
-    }
-
-
-    private <T> T deserialize(byte[] payload, Class<T> targetClass) {
-        try {
-            return Json.mapper.readValue(payload, targetClass);
-        } catch (IOException e) {
-            console.error(e.getMessage());
-            throw new RuntimeException(e);
-        }
-    }
 }

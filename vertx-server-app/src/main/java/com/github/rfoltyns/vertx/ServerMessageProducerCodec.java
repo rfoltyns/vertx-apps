@@ -12,7 +12,7 @@ public class ServerMessageProducerCodec implements MessageCodec<ServerMessage, B
     @Override
     public void encodeToWire(Buffer buffer, ServerMessage serverMessage) {
         try {
-            buffer.appendBytes(Json.mapper.writeValueAsBytes(serverMessage));
+            buffer.appendBytes(JsonUtils.mapper.writeValueAsBytes(serverMessage));
         } catch (JsonProcessingException e) {
             new RuntimeException(e);
         }

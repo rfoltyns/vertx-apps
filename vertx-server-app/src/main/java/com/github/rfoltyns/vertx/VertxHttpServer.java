@@ -17,7 +17,6 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.CorsHandler;
 import io.vertx.ext.web.impl.RouterImpl;
-import org.omg.PortableInterceptor.SYSTEM_EXCEPTION;
 
 public class VertxHttpServer extends AbstractVerticle {
 
@@ -25,6 +24,7 @@ public class VertxHttpServer extends AbstractVerticle {
     private DeliveryOptions defaultDeliveryOptions = new DeliveryOptions()
             .setCodecName(ServerMessageConsumerCodec.class.getName())
             .setSendTimeout(30000);
+
 
     @Override
     public void start() throws Exception {
@@ -57,13 +57,13 @@ public class VertxHttpServer extends AbstractVerticle {
         router.post("/").handler(routingContext -> {
                 Handler<AsyncResult<Message<Buffer>>> asyncResultHandler = getAsyncResultHandler(routingContext.request());
                 vertx.eventBus().send(
-                        "consumer1",
+                        "consumer",
                         routingContext.getBody(),
                         defaultDeliveryOptions,
                         asyncResultHandler);
         });
 
-        httpServer.requestHandler(router::accept).listen(Integer.valueOf(System.getProperty("vertx-server-port", "8080")));
+        httpServer.requestHandler(router::accept).listen(Integer.valueOf(System.getProperty("vertx-server-port", "8088")));
     }
 
     private Handler<AsyncResult<Message<Buffer>>> getAsyncResultHandler(HttpServerRequest request) {

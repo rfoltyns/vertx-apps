@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+
+    <Appenders>
+        <Console name="CONSOLE" />
+        <Elasticsearch name="samples" messageOnly="true">
+            <IndexName indexName="samples" />
+            <AsyncBatchDelivery batchSize="50000"
+                                deliveryInterval="500" >
+                <IndexTemplate name="template4" path="d:/workspace/indexTemplate.json" />
+                <JestHttp serverUris="http://localhost:9200"
+                          connTimeout="500"
+                          readTimeout="30000"
+                          defaultMaxTotalConnectionPerRoute="8" />
+            </AsyncBatchDelivery>
+        </Elasticsearch>
+        <Async name="asyncSamples">
+            <AppenderRef ref="samples" />
+        </Async>
+
+    </Appenders>
+
+    <Loggers>
+        <AsyncLogger name="samples" level="info" additivity="false">
+            <AppenderRef ref="asyncSamples" />
+        </AsyncLogger>
+        <Logger name="org.elasticsearch" level="trace">
+            <AppenderRef ref="CONSOLE" />
+        </Logger>
+        <Root level="info">
+            <AppenderRef ref="CONSOLE" />
+        </Root>
+    </Loggers>
+
+</Configuration>

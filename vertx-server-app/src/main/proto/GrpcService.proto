@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "com.github.rfoltyns.vertx.grpc";
+option java_outer_classname = "GrpcProto";
+package com.github.rfoltyns.vertx.grpc;
+
+// The greeting service definition.
+service Receiver {
+    rpc Measure (MeasureRequest) returns (MeasureReply) {}
+}
+
+// The request message containing the user's name.
+message MeasureRequest {
+  int32 id = 1;
+  string consumer = 2;
+  int64 createdAt = 3;
+  int64 receivedAt = 4;
+  int64 processedAt = 5;
+  int32 delayMillis = 6;
+  int32 delayDeviation = 7;
+  int32 numberOfHops = 8;
+  bytes data = 9;
+  map<string,string> sampleMap = 10;
+}
+
+// The response message containing the greetings
+message MeasureReply {
+  int32 id = 1;
+  int64 createdAt = 3;
+  int64 receivedAt = 4;
+  int64 processedAt = 5;
+}

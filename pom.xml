@@ -10,7 +10,7 @@
     <packaging>pom</packaging>
 
     <modules>
-        <module>vertx-client-app</module>
+        <module>vertx-scheduler</module>
         <module>vertx-server-app</module>
     </modules>
 

@@ -15,16 +15,7 @@ public class ServerMessageConsumerCodec implements MessageCodec<Buffer, ServerMe
 
     @Override
     public ServerMessage decodeFromWire(int pos, Buffer buffer) {
-        int length = buffer.length();
-        byte[] encoded = buffer.getBytes(pos, length);
-        ServerMessage message;
-        try {
-            message = Json.mapper.readValue(encoded, ServerMessage.class);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-
-        return message;
+        return JsonUtils.decodeValue(buffer, ServerMessage.class);
     }
 
     @Override
