@@ -31,7 +31,9 @@ public class VertxHttpServer extends AbstractVerticle {
 
     @Override
     public void start() throws Exception {
-        httpServer = vertx.createHttpServer(new HttpServerOptions().setUsePooledBuffers(true));
+        httpServer = vertx.createHttpServer(new HttpServerOptions()
+                .setUsePooledBuffers(true)
+        );
 
         Router router = new RouterImpl(vertx);
         router.route().handler(BodyHandler.create());

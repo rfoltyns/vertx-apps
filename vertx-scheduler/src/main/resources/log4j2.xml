@@ -12,6 +12,14 @@
                           connTimeout="500"
                           readTimeout="30000"
                           defaultMaxTotalConnectionPerRoute="8" />
+                <!--<ElasticsearchBulkProcessor serverUris="tcp://localhost:9300">-->
+                    <!--<XPackAuth>-->
+                        <!--<PlainCredentials username="admin" password="changeme" />-->
+                        <!--<PEM keyPath="${sys:certInfo.keyPath}"-->
+                             <!--clientCertPath="${sys:certInfo.clientCertPath}"-->
+                             <!--caPath="${sys:certInfo.caPath}" />-->
+                    <!--</XPackAuth>-->
+                <!--</ElasticsearchBulkProcessor>-->
             </AsyncBatchDelivery>
         </Elasticsearch>
         <Async name="asyncSamples">
@@ -24,7 +32,7 @@
         <AsyncLogger name="samples" level="info" additivity="false">
             <AppenderRef ref="asyncSamples" />
         </AsyncLogger>
-        <Logger name="org.elasticsearch" level="trace">
+        <Logger name="org.elasticsearch" level="info">
             <AppenderRef ref="CONSOLE" />
         </Logger>
         <Root level="info">

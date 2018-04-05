@@ -1,12 +1,15 @@
 # Compiled class file
 *.class
 
+# Maven 
+target
+
 # Intellij
 .idea
 *.iml
 
 # Maven
-target
+serviceName
 
 # Vert.x cache file
 .vertx

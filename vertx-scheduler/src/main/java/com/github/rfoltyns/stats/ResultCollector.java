@@ -80,7 +80,7 @@ public class ResultCollector {
     }
 
     public void add(ClientMessage result) {
-        samples.info(result.metrics());
+        samples.info(result);
         resultsReference.get().add(result);
     }
 

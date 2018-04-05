@@ -12,6 +12,7 @@
     <modules>
         <module>vertx-scheduler</module>
         <module>vertx-server-app</module>
+        <module>vertx-grpc-metrics</module>
     </modules>
 
 </project>

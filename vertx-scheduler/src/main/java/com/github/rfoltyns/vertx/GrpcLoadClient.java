@@ -1,23 +1,29 @@
 package com.github.rfoltyns.vertx;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.github.rfoltyns.grpc.metrics.VertxGrpcMetrics;
 import com.github.rfoltyns.vertx.grpc.MeasureReply;
 import com.github.rfoltyns.vertx.grpc.MeasureRequest;
-import com.github.rfoltyns.vertx.grpc.MeasureRequestOrBuilder;
 import com.github.rfoltyns.vertx.grpc.ReceiverGrpc;
 import com.google.protobuf.ByteString;
-import examples.HelloReply;
-import examples.HelloRequest;
+import io.grpc.LoadBalancer;
 import io.grpc.ManagedChannel;
+import io.grpc.util.RoundRobinLoadBalancerFactory;
+import io.opencensus.stats.Stats;
+import io.opencensus.stats.View;
+import io.opencensus.stats.ViewData;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.eventbus.DeliveryOptions;
 import io.vertx.core.eventbus.Message;
+import io.vertx.core.json.Json;
 import io.vertx.grpc.VertxChannelBuilder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.Queue;
 import java.util.Random;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -38,14 +44,38 @@ public class GrpcLoadClient extends AbstractVerticle {
     private static int numberOfRequestsPerThread = 100;
     private Random random = new Random();
 
-    private DeliveryOptions resultDeliverOptions = new DeliveryOptions()
-            .setCodecName(CollectorMessageCodec.class.getSimpleName());
+    private static Timer timer = new Timer();
+    private static TimerTask timerTask = new TimerTask() {
+        @Override
+        public void run() {
+            for (View exportedView : VertxGrpcMetrics.getAllRegisteredViews()) {
+                ViewData exportedViewData = Stats.getViewManager().getView(exportedView.getName());
+                try {
+                    System.out.println(exportedViewData.getView().getName().asString() + ": " + Json.mapper.writeValueAsString(exportedViewData.getAggregationMap()));
+                } catch (JsonProcessingException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    };
+
+    static {
+        timer.scheduleAtFixedRate(timerTask,1000,1000);
+    }
 
     @Override
     public void start() {
 
         ManagedChannel channel = VertxChannelBuilder
-                .forAddress(vertx, "localhost", 7070)
+                // FIXME: dummy host passed just to create the builder; implement per target resolution in NameResolver(?)
+                .forTarget(vertx, "localhost")
+                .nameResolverFactory(new LocalhostNameResolver(vertx, "grpc-server", "ipaddresses"))
+                .loadBalancerFactory(new LoadBalancer.Factory() {
+                     @Override
+                     public LoadBalancer newLoadBalancer(LoadBalancer.Helper helper) {
+                         return RoundRobinLoadBalancerFactory.getInstance().newLoadBalancer(helper);
+                     }
+                })
                 .usePlaintext(true)
                 .build();
 
@@ -66,6 +96,8 @@ public class GrpcLoadClient extends AbstractVerticle {
             }
         });
 
+        VertxGrpcMetrics.registerAllClientMinuteViews();
+
     }
 
     private void sendRequest(ScheduleRequest scheduleRequest) {
@@ -83,7 +115,6 @@ public class GrpcLoadClient extends AbstractVerticle {
                 clientMessage.setProcessedAt(System.currentTimeMillis());
 
                 Collector.CollectorHolder.INSTANCE.add(clientMessage);
-//                System.out.println("Got the server response: " + ar.result().getId());
             } else {
                 System.out.println("Coult not reach server " + ar.cause().getMessage());
             }
